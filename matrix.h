@@ -2,28 +2,32 @@
 #define __MATRIX_H__
 #include <string.h>
 #include <stdio.h>
-#include <malloc.h>  //sudo apt-get install valgrind
+#include <malloc.h>
 #include <iostream>
 #include <stdlib.h>
+#include <fstream>
 using namespace std;
 
 class CMatrix
 {
 public:
-    class Cref1;
-    class Cref2;
-	class IndexOutOfRange{};
+    	class Cref1;
+    	class Cref2;
+        class IndexOutOfRange{};
 	class WrongDim{};
-    Cref1 operator[] (int);
-    CMatrix(int, int, double c=0, double d=0);       //d=parametr domyslny
-    ~CMatrix();
-    friend ostream& operator<<(ostream&, const CMatrix&);
-    CMatrix& operator=(const CMatrix&);
-    friend CMatrix operator*(const CMatrix&, const CMatrix&);
-	double read(unsigned int, unsigned int) const;
-	void write(unsigned int i, unsigned int j, double c);
+	class bad_alloc{};
+
+	Cref1 operator[] (int);
+	CMatrix(int, int, double c=0, double d=0);
+ 	CMatrix(fstream&);
+   	~CMatrix();
+  	friend ostream& operator<<(ostream&, const CMatrix&);
+ 	CMatrix& operator=(const CMatrix&);	
+	friend CMatrix operator*(const CMatrix&, const CMatrix&);
+   	double read(unsigned int, unsigned int) const;
+    	void write(unsigned int i, unsigned int j, double c);
 private:
-    struct rcmatrix;
+    	struct rcmatrix;
 	rcmatrix* data;
 };
 
@@ -35,73 +39,110 @@ struct CMatrix::rcmatrix
     int kolumna;
     unsigned int n;
 
-    rcmatrix(int a, int b, double c, double d)
+rcmatrix(int a, int b, double c, double d)
 {
-    int k=0;
-    int j=0;
-    n=1;
-    wiersz=a;
-    kolumna=b;
-    matrix=alloc(wiersz, kolumna);
-    for(k=0;k<wiersz;k++) //wypelnianie wierszy i kolumn
-    {
-        for(j=0;j<kolumna;j++)
-        {
-            if(k!=j)matrix[k][j]=d;
-            else matrix[k][j]=c;
-        }
-    }
+	int k=0;
+    	int j=0;
+    	n=1;
+    	wiersz=a;
+    	kolumna=b;
+    	matrix=alloc(wiersz, kolumna);
+    	for(k=0;k<wiersz;k++) //wypelnianie wierszy i kolumn
+    	{
+        	for(j=0;j<kolumna;j++)
+        	{
+        		if(k!=j)matrix[k][j]=d;
+        	    	else matrix[k][j]=c;
+        	}
+    	}
 }
 
-	rcmatrix(const rcmatrix& s)
+rcmatrix(const rcmatrix& s)
+{
+	int i=0;
+	int j=0;
+	n=1;
+	wiersz=s.wiersz;
+	kolumna=s.kolumna;
+	for(i=0; i<s.wiersz;i++)
 	{
-		int i=0;
-		int j=0;
-		n=1;
-		wiersz=s.wiersz;
-		kolumna=s.kolumna;
-		for(i=0; i<s.wiersz;i++)
+		for(j=0;j<s.kolumna;j++)
 		{
-			for(j=0;j<s.kolumna;j++)
-			{
-				matrix[i][j]=s.matrix[i][j];
-			}
+			matrix[i][j]=s.matrix[i][j];
 		}
 	}
+}
 
 double** alloc(int wiersz, int kolumna)
 {
-    int k=0;
-    double **matrix=new double*[wiersz]; //alokaja wierszy
-    for(k=0;k<wiersz;k++)
-    {
-        matrix[k]=new double[kolumna]; //alokacja kolumn
-    }
-    return matrix;
+    	int i=0;
+    	double **matrix=new double*[wiersz]; //alokaja wierszy
+	try
+	{
+    		for(i=0;i<wiersz;i++)
+    		{
+        		matrix[i]=new double[kolumna]; //alokacja kolumn
+    		}
+    		return matrix;
+	}
+	catch (bad_alloc&)
+	{
+   		for(i=0; i<wiersz; i++)
+    		{
+        		delete[] matrix[i];
+    		}
+    		delete[] matrix;
+
+		throw bad_alloc();
+	}
 }
 
 ~rcmatrix()
 {
-    int i=0;
-    for(i=0; i<wiersz; i++)
-    {
-        delete[] matrix[i];
-    }
-    delete[] matrix;
+   	 int i=0;
+    	for(i=0; i<wiersz; i++)
+    	{
+       		delete[] matrix[i];
+    	}
+    	delete[] matrix;
 }
 
-  rcmatrix* detach()
-  {
-    if(n==1)
-      return this;
-    rcmatrix* t=new rcmatrix(*this);
-    n--;
-    return t;
-  };
-
+rcmatrix* detach()
+{
+   	if(n==1)
+      	return this;
+    	rcmatrix* t=new rcmatrix(*this);
+    	n--;
+    	return t;
 };
 
-CMatrix::CMatrix(int a, int b, double c, double d) //tworze macierz a=wiersze, b=kolumny
+rcmatrix(fstream& s)
+{
+	n=1;
+	int toInt;
+	double toDouble;
+
+	s >> toInt;
+	wiersz = toInt;
+
+	s >> toInt;		
+	kolumna = toInt;
+
+	matrix = alloc(wiersz,kolumna);
+
+	// Przypisania 
+	for(int k = 0; k < wiersz; k++)
+	{
+		for(int l = 0; l < kolumna; l++)
+		{
+			s >> toDouble;
+			this->matrix[k][l] = toDouble;
+		}
+	}
+}
+};
+
+CMatrix::CMatrix(int a, int b, double c, double d)
 {
 	data=new rcmatrix(a, b, c, d);
 }
@@ -113,7 +154,6 @@ class CMatrix::Cref2
 	CMatrix& s;
 	int i;	
 	int j;
-
 
 public:
 
@@ -192,22 +232,25 @@ CMatrix& CMatrix::operator=(const CMatrix& x) //operator przypisania
 
 inline CMatrix operator * (const CMatrix& s1, const CMatrix& s2)
 {
-if(s1.data->kolumna!=s2.data->wiersz) throw CMatrix::WrongDim();
-		CMatrix temp(s1.data->wiersz, s2.data->kolumna);
-		for(int k = 0; k < s1.data->wiersz; k++)
+	if(s1.data->kolumna!=s2.data->wiersz) throw CMatrix::WrongDim();
+	CMatrix temp(s1.data->wiersz, s2.data->kolumna);
+	for(int k = 0; k < s1.data->wiersz; k++)
+	{
+		for(int l = 0; l < s2.data->kolumna; l++)
 		{
-			for(int l = 0; l < s2.data->kolumna; l++)
-				{
-					for(int m = 0; m < s1.data->kolumna; m++)
-					{
-							temp.data->matrix[k][l] += s1.data->matrix[k][m] * s2.data->matrix[m][l];		
-					} 
-				}
+			for(int m = 0; m < s1.data->kolumna; m++)
+			{
+				temp.data->matrix[k][l] += s1.data->matrix[k][m] * s2.data->matrix[m][l];		
+			} 
 		}
-		return temp;
+	}
+	return temp;
 }
 
-//fstream
+CMatrix::CMatrix(fstream & s)
+{
+	data = new rcmatrix(s);
+}
 
 inline double CMatrix::read(unsigned int i, unsigned int j) const
 {
@@ -216,8 +259,8 @@ inline double CMatrix::read(unsigned int i, unsigned int j) const
 
 inline void CMatrix::write(unsigned int i, unsigned int j, double c)
 {
-  data = data->detach();
-  data->matrix[i][j] = c;
+	data = data->detach();
+	data->matrix[i][j] = c;
 }
 
 

@@ -24,16 +24,16 @@ int main()
         cout << S << endl;
 
    
-/*        fstream f1; //z neta
-        f1.open("matrix.dat", fstream::in); //z neta
+        fstream f1;
+        f1.open("matrix.dat", fstream::in);
         CMatrix B(f1);                //Read the matrix data from file matrix.dat
         f1.close();                //First two values in this file specify the matrix dimensions
-        cout << B << endl;*/
+        cout << B << endl;
        
-   //     S = B;                        //Assign B to S
+        S = B;                        //Assign B to S
         S[0][0] = 1.4;                    //Modify S
         cout << "S[0][0]=" << S[0][0] << endl;        //Verify S
-     //   cout << "B[0][0]=" << B[0][0] << endl;        //Verify B
+        cout << "B[0][0]=" << B[0][0] << endl;        //Verify B
     }
     catch(CMatrix::IndexOutOfRange&)
     {
